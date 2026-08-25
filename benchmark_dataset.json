@@ -1,0 +1,70 @@
+{
+  "suite_name": "ACMG/AMP 2015 & ClinGen Genomic Variant Benchmark Suite",
+  "system_slug": "acmg-variant-classifier",
+  "standard_reference": "Richards et al. 2015 / Tavtigian et al. 2020 / ClinGen Recommendations",
+  "benchmark_variants": [
+    {
+      "variant_id": "BRCA1:c.5266dupC (p.Gln1756Profs*74)",
+      "gene": "BRCA1",
+      "evidence_codes": ["PVS1", "PS3", "PM2"],
+      "allele_frequency": 0.00002,
+      "expected_categorical_classification": "Pathogenic",
+      "expected_bayesian_points": 14,
+      "expected_bayesian_classification": "Pathogenic"
+    },
+    {
+      "variant_id": "TP53:c.524G>A (p.Arg175His)",
+      "gene": "TP53",
+      "evidence_codes": ["PS1", "PS3", "PM1", "PM2", "PP3"],
+      "allele_frequency": 0.000005,
+      "expected_categorical_classification": "Pathogenic",
+      "expected_bayesian_points": 13,
+      "expected_bayesian_classification": "Pathogenic"
+    },
+    {
+      "variant_id": "MSH2:c.942+3A>T",
+      "gene": "MSH2",
+      "evidence_codes": ["PS3", "PM2", "PP3"],
+      "allele_frequency": 0.00001,
+      "expected_categorical_classification": "Likely Pathogenic",
+      "expected_bayesian_points": 7,
+      "expected_bayesian_classification": "Likely Pathogenic"
+    },
+    {
+      "variant_id": "CFTR:c.1521_1523delCTT (p.Phe508del)",
+      "gene": "CFTR",
+      "evidence_codes": ["PVS1", "PS3", "PM1", "PP4"],
+      "allele_frequency": 0.012,
+      "expected_categorical_classification": "Pathogenic",
+      "expected_bayesian_points": 15,
+      "expected_bayesian_classification": "Pathogenic"
+    },
+    {
+      "variant_id": "HBB:c.9T>C (p.His3Tyr)",
+      "gene": "HBB",
+      "evidence_codes": ["BA1"],
+      "allele_frequency": 0.12,
+      "expected_categorical_classification": "Benign",
+      "expected_bayesian_points": 0,
+      "expected_bayesian_classification": "Benign"
+    },
+    {
+      "variant_id": "LDLR:c.2054A>G (p.Asp685Gly)",
+      "gene": "LDLR",
+      "evidence_codes": ["BS1", "BS2", "BP4"],
+      "allele_frequency": 0.025,
+      "expected_categorical_classification": "Benign",
+      "expected_bayesian_points": -9,
+      "expected_bayesian_classification": "Benign"
+    },
+    {
+      "variant_id": "KCNQ1:c.1234G>A (p.Ala412Thr)",
+      "gene": "KCNQ1",
+      "evidence_codes": ["PP3"],
+      "allele_frequency": 0.0005,
+      "expected_categorical_classification": "Uncertain Significance",
+      "expected_bayesian_points": 1,
+      "expected_bayesian_classification": "Uncertain Significance"
+    }
+  ]
+}
