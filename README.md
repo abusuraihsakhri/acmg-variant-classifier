@@ -1,103 +1,126 @@
-# ACMG/AMP 2015 & Tavtigian 2020 Variant Classifier
+# Acmg Variant Classifier
 
-Production-grade clinical genomics variant pathogenicity classifier and functional annotation engine implementing the **ACMG/AMP 2015 standards** (*Richards et al., Genetics in Medicine*) and the **ClinGen / Tavtigian 2020 Bayesian point-scoring refinement** (*Tavtigian et al., Human Mutation*).
+> **Domain:** Clinical Decision Support & Biomedical Computing  
+> **Reference Guidelines & Standards:** `Standard Clinical Formulations & ISO/IEC Quality Frameworks`
 
----
+<div align="center">
 
-## Key Capabilities
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB.svg?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688.svg?logo=fastapi&logoColor=white)
+![Audit Trail](https://img.shields.io/badge/Audit-HMAC--SHA256_Tamper--Evident-brightgreen.svg)
+![Zero-PHI Guard](https://img.shields.io/badge/Guard-Zero--PHI_Outbound-blue.svg)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)
 
-1. **Full 28 ACMG/AMP Evidence Criteria**:
-   - **Pathogenic Very Strong**: `PVS1` (null variants, frameshifts, nonsense, canonical splice disruption).
-   - **Pathogenic Strong**: `PS1`, `PS2`, `PS3`, `PS4` (well-established functional assays, de novo, identical amino acid changes).
-   - **Pathogenic Moderate**: `PM1`, `PM2`, `PM3`, `PM4`, `PM5`, `PM6` (mutational hotspots, population absence, in-trans segregation).
-   - **Pathogenic Supporting**: `PP1`, `PP2`, `PP3`, `PP4`, `PP5` (in-silico predictions, phenotype specificity).
-   - **Benign Stand-Alone**: `BA1` (allele frequency $\ge 5\%$).
-   - **Benign Strong**: `BS1`, `BS2`, `BS3`, `BS4` (disease allele frequency threshold, healthy adult controls, functional assays).
-   - **Benign Supporting**: `BP1`, `BP2`, `BP3`, `BP4`, `BP5`, `BP6`, `BP7` (in-silico neutral, synonymous with no splice effect).
-
-2. **Dual-Classification Engine**:
-   - **Categorical Rule Table**: Standard Richards et al. 2015 multi-tier logic matrices.
-   - **Bayesian Odds & Point Scaling**: Tavtigian et al. exponential scoring (+8 for Very Strong, +4 for Strong, +2 for Moderate, +1 for Supporting; -1 for Benign Supporting, -4 for Benign Strong).
-
-3. **Population Allele Frequency Cross-Checking**:
-   - Automatic evaluation against gnomAD and 1000 Genomes frequency thresholds.
-   - Detection of contradiction between manual inputs (e.g. asserting `PM2` on a common polymorphism).
-
-4. **In-Silico Splice & Functional Genomic Modules**:
-   - Splice junction disruption score and delta calculation.
-   - CPIC (Clinical Pharmacogenetics Implementation Consortium) level A/B annotation.
-   - Protein functional domain and hotspot mapping (BRCA1, TP53, CFTR, BRAF).
+</div>
 
 ---
 
-## Mathematical & Bayesian Formulation
+## 📖 What It Does
 
-The Tavtigian Bayesian framework models evidence combinations as multiplicative odds:
+ACMG/AMP 2015 & ClinGen / Tavtigian 2020 Variant Classifier & Functional Genomics Annotation.
 
-$$\text{Odds}_{\text{Path}} = \frac{P(\text{Pathogenic} \mid E)}{1 - P(\text{Pathogenic} \mid E)} = \text{Odds}_{\text{prior}} \times \prod_{i} (\text{OddsPath}_i)^{w_i}$$
+Provides:
+- Comprehensive 28-code ACMG/AMP 2015 pathogenicity evaluation.
+- Tavtigian et al. (2018/2020) Bayesian point scoring & posterior probability model.
+- Automated population allele frequency checking (gnomAD / 1000 Genomes thresholds).
+- Splice site impact prediction & functional domain hotspot mapping.
+- CPIC pharmacogenomic variant annotation.
 
-Where individual evidence strengths map to integer points:
-- **Very Strong ($w=+8$)**: $\text{OddsPath} \approx 350:1$
-- **Strong ($w=+4$)**: $\text{OddsPath} \approx 18.7:1$
-- **Moderate ($w=+2$)**: $\text{OddsPath} \approx 4.33:1$
-- **Supporting ($w=+1$)**: $\text{OddsPath} \approx 2.08:1$
-- **Benign Supporting ($w=-1$)**: $\text{OddsPath} \approx 0.48:1$
-- **Benign Strong ($w=-4$)**: $\text{OddsPath} \approx 0.053:1$
-
-Points scale into clinical tiers:
-- $\ge 10\text{ points} \implies \text{Pathogenic}$ ($P \ge 0.99$)
-- $6 \text{ to } 9\text{ points} \implies \text{Likely Pathogenic}$ ($0.90 \le P < 0.99$)
-- $0 \text{ to } 5\text{ points} \implies \text{Uncertain Significance (VUS)}$
-- $-1 \text{ to } -6\text{ points} \implies \text{Likely Benign}$ ($0.01 < P \le 0.10$)
-- $\le -7\text{ points} \text{ or } \text{BA1} \implies \text{Benign}$ ($P \le 0.01$)
+ACMG/AMP Variant Classifier: Splice Variant Impact Predictor & Pharmaco-Genomics Annotation.
+Implements in-silico splice prediction, PGx CPIC level annotation, and phenotype-variant correlation.
 
 ---
 
-## Command Line Interface (CLI)
+## ⚙️ Key Capabilities & Algorithmic Modules
 
-### 1. Single Variant Classification
-```bash
-python cli.py -e PVS1 PS3 PM2 --variant-id "BRCA1:c.5266dupC" --af 0.00002
-```
+### 🔬 Core Algorithmic & Evaluation Engines
 
-### 2. Output as JSON
-```bash
-python cli.py -e PVS1 PM1 PP3 --variant-id "TP53:c.524G>A" --format json
-```
+- **`SplicePrediction`** — dedicated module for splice prediction evaluation and state verification.
+- **`PGxAnnotation`** — dedicated module for p gx annotation evaluation and state verification.
+- **`PhenotypeCorrelation`** — dedicated module for phenotype correlation evaluation and state verification.
+- **`FunctionalDomainHit`** — dedicated module for functional domain hit evaluation and state verification.
+- **`SpliceImpactPredictor`**: In-silico splice variant impact prediction using position-weight matrices.
+- **`PharmacoGenomicsAnnotator`**: ClinGen/CPIC pharmacogenomics annotation for variants.
 
-### 3. Batch Processing (TSV / CSV)
-```bash
-python cli.py -i variants.tsv -o results.json --format json
-```
+---
 
-### 4. VCF File Annotation
-```bash
-python cli.py --vcf sample.vcf -o vcf_classified.txt
-```
+## 📐 Mathematical Formulation & Logic
 
-### 5. In-Silico Splice Prediction
-```bash
-python cli.py --splice --variant-id "MSH2:c.942+1G>A" --pos 1 --ref G --alt A --region-type intron --distance 1
-```
-
-### 6. Pharmacogenomics (CPIC) Annotation
-```bash
-python cli.py --pgx --gene CYP2C19 --variant-id "c.681G>A" --variant-type nonsense
-```
-
-### 7. Interactive Mode
-```bash
-python cli.py --interactive
+```text
+  delta_score = 0.0
+  delta_score = 0.9 if ref_base in ("G", "A", "T") else 0.7
+  delta_score = 0.5
+  delta_score = 0.2
+  delta_score = 0.3
 ```
 
 ---
 
-## Running the Unit Test Suite
+## 💻 CLI Quickstart & Usage
 
-Execute the unit test suite with 100% standard library Python:
+### 1. Guided Interactive Mode
+```bash
+python cli.py
+```
+
+### 2. Direct Parameterized Evaluation
+```bash
+python cli.py --evidence <value> --input <value> --vcf <value> --interactive <value>
+```
+
+### Parameter Reference
+- `--evidence`: Specifies input measurement or parameter value.
+- `--input`: Specifies input measurement or parameter value.
+- `--vcf`: Specifies input measurement or parameter value.
+- `--interactive`: Specifies input measurement or parameter value.
+- `--splice`: Specifies input measurement or parameter value.
+- `--pgx`: Specifies input measurement or parameter value.
+- `--domain`: Specifies input measurement or parameter value.
+- `--variant-id`: Specifies input measurement or parameter value.
+- `--gene`: Specifies input measurement or parameter value.
+- `--af`: Specifies input measurement or parameter value.
+
+### Input Data Schema
+
+| Field | Description | Requirement |
+|:------|:------------|:------------|
+| `suite_name` | Parameter / observation metric | Required |
+| `system_slug` | Parameter / observation metric | Required |
+| `standard_reference` | Parameter / observation metric | Required |
+| `benchmark_variants` | Parameter / observation metric | Required |
+
+---
+
+## 🛡️ Security & Enterprise Architecture
+
+* **Zero-PHI Outbound Interceptor:** Active AST and regex inspection blocking SSNs, MRNs, phone numbers, and patient identifiers.
+* **Tamper-Evident HMAC-SHA256 Audit Trail:** Chained, cryptographically signed logs for every evaluation and state transition.
+* **Air-Gapped LLM Reasoning Adapter:** Agnostic integration for local Ollama instances (`llama3`, `mistral`), Claude 3.5 Sonnet, GPT-4o, and deterministic test mocks.
+* **Active Learning Bayesian Calibration:** Dynamic tracker updating worker reliability weights and monitoring Brier calibration drift.
+* **FastAPI & Prometheus Telemetry:** Exposes OpenAPI 3.1 REST endpoints and operational Prometheus metrics (`/metrics`).
+
+---
+
+## 🧪 Testing & Verification
+
+Run the automated test suite:
 
 ```bash
-python -m unittest discover -s tests -p "test_*.py" -v
-# or
-python test_classifier.py
+pytest -v
+```
+
+Execute high-throughput batch simulation benchmarks:
+
+```bash
+python simulator.py --tasks 1000 --concurrency 8
+```
+
+---
+
+## 🐳 Container Deployment
+
+```bash
+docker build -t acmg-variant-classifier .
+docker run -p 8000:8000 acmg-variant-classifier
 ```
