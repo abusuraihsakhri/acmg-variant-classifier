@@ -342,6 +342,47 @@ class TestCLIAndBatch(unittest.TestCase):
         self.assertEqual(data["gene"], "CYP2C19")
         self.assertEqual(data["cpic_level"], "A")
 
+    def test_cli_json_flag(self):
+        out = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            exit_code = cli.main(["--evidence", "PVS1", "PS3", "PM2", "--json", "--variant-id", "TEST-JSON"])
+            self.assertEqual(exit_code, 0)
+        finally:
+            sys.stdout = old_stdout
+
+        payload = json.loads(out.getvalue())
+        self.assertEqual(payload[0]["final_classification"], "Pathogenic")
+        self.assertEqual(payload[0]["variant_id"], "TEST-JSON")
+
+    def test_benchmark_dataset_consistency(self):
+        benchmark_file = PROJECT_ROOT / "benchmark_dataset.json"
+        with open(benchmark_file, "r", encoding="utf-8") as f:
+            bench = json.load(f)
+
+        for item in bench.get("benchmark_variants", []):
+            rep = classify_variant(
+                item["evidence_codes"],
+                variant_id=item["variant_id"],
+                population_af=item.get("allele_frequency"),
+            )
+            self.assertEqual(
+                rep.categorical_label,
+                item["expected_categorical_classification"],
+                f"Mismatch categorical for {item['variant_id']}",
+            )
+            self.assertEqual(
+                rep.bayesian_points,
+                item["expected_bayesian_points"],
+                f"Mismatch bayesian points for {item['variant_id']}",
+            )
+            self.assertEqual(
+                rep.bayesian_label,
+                item["expected_bayesian_classification"],
+                f"Mismatch bayesian label for {item['variant_id']}",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

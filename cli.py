@@ -83,6 +83,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Output formatting
     parser.add_argument("--format", choices=["text", "json"], default="text", help="Output format (default: text).")
+    parser.add_argument("--json", action="store_true", help="Output result as formatted JSON (shorthand for --format json).")
     parser.add_argument("--output", "-o", metavar="FILE", help="Write report to specified output file.")
 
     return parser
@@ -217,6 +218,9 @@ def run_vcf(args) -> List[dict]:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.json:
+        args.format = "json"
 
     if args.interactive or (not args.evidence and not args.input and not args.vcf and not args.splice and not args.pgx and not args.domain):
         if len(sys.argv) == 1 or args.interactive:
