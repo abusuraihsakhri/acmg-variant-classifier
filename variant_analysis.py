@@ -3,8 +3,8 @@
 ACMG/AMP Variant Classifier: Splice Variant Impact Predictor & Pharmaco-Genomics Annotation.
 Implements in-silico splice prediction, PGx CPIC level annotation, and phenotype-variant correlation.
 """
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional, Tuple
+from dataclasses import dataclass
+from typing import List, Tuple
 
 
 @dataclass

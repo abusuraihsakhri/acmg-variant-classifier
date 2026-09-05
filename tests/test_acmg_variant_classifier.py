@@ -384,5 +384,86 @@ class TestCLIAndBatch(unittest.TestCase):
             )
 
 
+class TestInputValidationAndSecurity(unittest.TestCase):
+    """Tests for input validation, path safety, and error handling."""
+
+    def test_validate_input_path_not_found(self):
+        """Non-existent input file raises FileNotFoundError."""
+        with self.assertRaises(FileNotFoundError):
+            cli._validate_input_path("/nonexistent/path/file.csv")
+
+    def test_validate_input_path_is_directory(self):
+        """Directory path raises ValueError."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                cli._validate_input_path(tmpdir)
+
+    def test_validate_output_path_is_directory(self):
+        """Output path pointing to existing directory raises ValueError."""
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(ValueError):
+                cli._validate_output_path(tmpdir)
+
+    def test_validate_output_path_creates_parent(self):
+        """Output path creates parent directory if needed."""
+        import tempfile
+        import os
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, "subdir", "output.txt")
+            result = cli._validate_output_path(output_path)
+            self.assertTrue(os.path.isdir(os.path.dirname(result)))
+
+    def test_probability_float_valid(self):
+        """Valid probability values are accepted."""
+        self.assertEqual(cli._probability_float("0.5"), 0.5)
+        self.assertEqual(cli._probability_float("0"), 0.0)
+        self.assertEqual(cli._probability_float("1"), 1.0)
+        self.assertEqual(cli._probability_float("0.0001"), 0.0001)
+
+    def test_probability_float_out_of_range(self):
+        """Out-of-range probability values raise ArgumentTypeError."""
+        import argparse
+        with self.assertRaises(argparse.ArgumentTypeError):
+            cli._probability_float("1.5")
+        with self.assertRaises(argparse.ArgumentTypeError):
+            cli._probability_float("-0.1")
+
+    def test_probability_float_invalid(self):
+        """Non-numeric values raise ArgumentTypeError."""
+        import argparse
+        with self.assertRaises(argparse.ArgumentTypeError):
+            cli._probability_float("not_a_number")
+
+    def test_cli_invalid_af_rejected(self):
+        """CLI rejects out-of-range allele frequency."""
+        import argparse
+        with self.assertRaises(SystemExit):
+            cli.main(["--evidence", "PVS1", "--af", "2.0"])
+
+    def test_cli_invalid_ba1_threshold_rejected(self):
+        """CLI rejects out-of-range BA1 threshold."""
+        with self.assertRaises(SystemExit):
+            cli.main(["--evidence", "PVS1", "--ba1-threshold", "-0.5"])
+
+    def test_split_codes_strips_whitespace(self):
+        """_split_codes strips whitespace from individual codes."""
+        result = cli._split_codes(" PVS1 , PS3 , PM2 ")
+        self.assertEqual(result, ["PVS1", "PS3", "PM2"])
+
+    def test_cli_batch_missing_file(self):
+        """CLI handles missing input file gracefully."""
+        import io
+        import sys
+        old_stderr = sys.stderr
+        sys.stderr = io.StringIO()
+        try:
+            exit_code = cli.main(["-i", "/nonexistent/file.csv"])
+            self.assertEqual(exit_code, 1)
+        finally:
+            sys.stderr = old_stderr
+
+
 if __name__ == "__main__":
     unittest.main()

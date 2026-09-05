@@ -28,6 +28,14 @@ git clone https://github.com/abusuraihsakhri/acmg-variant-classifier.git
 cd acmg-variant-classifier
 ```
 
+## Security & Input Validation
+
+The CLI includes built-in input validation:
+
+- **Path validation**: Input files are verified to exist and be regular files before processing. Output paths are validated to prevent accidental overwrites of directories.
+- **Probability range checking**: Allele frequency (`--af`), BA1 threshold (`--ba1-threshold`), and PM2 threshold (`--pm2-threshold`) values are validated to be within the [0, 1] range.
+- **Graceful error handling**: File I/O errors and invalid inputs produce clear error messages with non-zero exit codes.
+
 ---
 
 ## CLI Usage

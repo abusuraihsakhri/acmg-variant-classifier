@@ -17,3 +17,9 @@ output.csv
 output.json
 .DS_Store
 Thumbs.db
+# IDE / editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

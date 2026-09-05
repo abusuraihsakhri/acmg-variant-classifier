@@ -11,7 +11,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from acmg_classifier import report as report_mod
 from acmg_classifier.classifier import classify_variant
@@ -23,6 +23,65 @@ def _split_codes(text: str) -> List[str]:
     if not text:
         return []
     return [c.strip() for c in re.split(r"[,;|\s]+", text.strip()) if c.strip()]
+
+
+def _validate_input_path(filepath: str) -> Path:
+    """Validate that an input file path exists and is a regular file.
+
+    Args:
+        filepath: User-supplied file path.
+
+    Returns:
+        Resolved Path object.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the path is not a regular file.
+    """
+    path = Path(filepath)
+    if not path.exists():
+        raise FileNotFoundError(f"Input file not found: {filepath}")
+    if not path.is_file():
+        raise ValueError(f"Input path is not a regular file: {filepath}")
+    return path
+
+
+def _validate_output_path(filepath: str) -> Path:
+    """Validate that an output file path is safe to write.
+
+    Ensures the parent directory exists or can be created, and that the
+    path does not point to a directory.
+
+    Args:
+        filepath: User-supplied output file path.
+
+    Returns:
+        Resolved Path object.
+
+    Raises:
+        ValueError: If the path points to an existing directory.
+    """
+    path = Path(filepath)
+    if path.exists() and path.is_dir():
+        raise ValueError(f"Output path is an existing directory: {filepath}")
+    # Ensure parent directory exists
+    parent = path.parent
+    if not parent.exists():
+        parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def _probability_float(value: str) -> float:
+    """Argparse type validator for probability values in [0, 1]."""
+    try:
+        fval = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid float value: {value!r}")
+    if not 0.0 <= fval <= 1.0:
+        raise argparse.ArgumentTypeError(
+            f"Value {fval} is outside the valid probability range [0, 1]."
+        )
+    return fval
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -65,7 +124,7 @@ def build_parser() -> argparse.ArgumentParser:
     # Variant / Gene parameters
     parser.add_argument("--variant-id", default="VAR-001", help="Variant identifier (e.g. 'BRCA1:c.5266dupC').")
     parser.add_argument("--gene", default="BRCA1", help="Gene symbol for PGx or domain mapping.")
-    parser.add_argument("--af", type=float, default=None, help="Population allele frequency (e.g. 0.00004).")
+    parser.add_argument("--af", type=_probability_float, default=None, help="Population allele frequency (e.g. 0.00004).")
     parser.add_argument("--pos", type=int, default=1, help="Genomic or protein position for splice/domain mapping.")
     parser.add_argument("--ref", default="G", help="Reference base for splice prediction.")
     parser.add_argument("--alt", default="A", help="Alternate base for splice prediction.")
@@ -74,9 +133,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--variant-type", default="missense", help="Variant type (missense, nonsense, frameshift, splice).")
 
     # Algorithm thresholds
-    parser.add_argument("--ba1-threshold", type=float, default=DEFAULT_BA1_THRESHOLD,
+    parser.add_argument("--ba1-threshold", type=_probability_float, default=DEFAULT_BA1_THRESHOLD,
                         help=f"Allele frequency above which BA1 applies (default: {DEFAULT_BA1_THRESHOLD}).")
-    parser.add_argument("--pm2-threshold", type=float, default=DEFAULT_PM2_THRESHOLD,
+    parser.add_argument("--pm2-threshold", type=_probability_float, default=DEFAULT_PM2_THRESHOLD,
                         help=f"Allele frequency at/below which PM2 applies (default: {DEFAULT_PM2_THRESHOLD}).")
     parser.add_argument("--no-auto-frequency", action="store_true",
                         help="Disable auto-derivation of BA1/PM2 from allele frequency.")
@@ -147,7 +206,7 @@ def run_interactive(args) -> List[dict]:
 
 def run_batch_table(args) -> List[dict]:
     reports = []
-    filepath = Path(args.input)
+    filepath = _validate_input_path(args.input)
     delimiter = "\t" if filepath.suffix.lower() in [".tsv", ".tab"] else ","
 
     with open(filepath, mode="r", encoding="utf-8-sig") as f:
@@ -182,7 +241,8 @@ def run_vcf(args) -> List[dict]:
     vcf_acmg_re = re.compile(r"(?:^|;)ACMG=([^;]+)")
     vcf_af_re = re.compile(r"(?:^|;)AF=([^;]+)")
 
-    with open(args.vcf, "r", encoding="utf-8") as fh:
+    vcf_path = _validate_input_path(args.vcf)
+    with open(vcf_path, "r", encoding="utf-8") as fh:
         for line in fh:
             line = line.rstrip("\n")
             if not line or line.startswith("#"):
@@ -229,6 +289,15 @@ def main(argv=None) -> int:
         parser.print_help()
         return 1
 
+    try:
+        return _run_main_logic(args)
+    except (FileNotFoundError, ValueError, OSError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _run_main_logic(args) -> int:
+    """Execute the main CLI logic with validated arguments."""
     # Splice prediction mode
     if args.splice:
         predictor = SpliceImpactPredictor()
@@ -251,7 +320,7 @@ def main(argv=None) -> int:
                 f"  Evidence Level:    {res.evidence_level}\n"
             )
         if args.output:
-            Path(args.output).write_text(out, encoding="utf-8")
+            _validate_output_path(args.output).write_text(out, encoding="utf-8")
         else:
             print(out)
         return 0
@@ -272,7 +341,7 @@ def main(argv=None) -> int:
                 f"  Guideline URL:  {annot.evidence_url}\n"
             )
         if args.output:
-            Path(args.output).write_text(out, encoding="utf-8")
+            _validate_output_path(args.output).write_text(out, encoding="utf-8")
         else:
             print(out)
         return 0
@@ -288,7 +357,7 @@ def main(argv=None) -> int:
             for h in hits:
                 out += f"  - Domain: {h.domain_name} ({h.residue_range[0]}-{h.residue_range[1]}) | In Domain: {h.in_domain} | Hot Spot: {h.hot_spot}\n"
         if args.output:
-            Path(args.output).write_text(out, encoding="utf-8")
+            _validate_output_path(args.output).write_text(out, encoding="utf-8")
         else:
             print(out)
         return 0
@@ -324,7 +393,7 @@ def main(argv=None) -> int:
         output_str = report_mod.reports_to_text(reports)
 
     if args.output:
-        Path(args.output).write_text(output_str, encoding="utf-8")
+        _validate_output_path(args.output).write_text(output_str, encoding="utf-8")
     else:
         print(output_str)
 

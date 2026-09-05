@@ -13,7 +13,7 @@ from .frequency import DEFAULT_BA1_THRESHOLD, DEFAULT_PM2_THRESHOLD
 def _split_codes(text):
     if not text:
         return []
-    return [c for c in re.split(r"[,;|\s]+", text.strip()) if c]
+    return [c.strip() for c in re.split(r"[,;|\s]+", text.strip()) if c.strip()]
 
 
 def build_parser():
