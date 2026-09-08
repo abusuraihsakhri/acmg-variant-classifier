@@ -72,6 +72,10 @@ def bayesian_classification(counts, ba1_present):
     }
 
 
+import math
+from .security import validate_numeric_range
+
+
 def posterior_probability(points: int, prior: float = 0.10, odds_base: float = 2.08) -> float:
     """Compute Tavtigian 2020 Bayesian posterior probability of pathogenicity.
 
@@ -83,12 +87,22 @@ def posterior_probability(points: int, prior: float = 0.10, odds_base: float = 2
     Returns:
         Posterior probability in [0.0, 1.0].
     """
+    if isinstance(points, bool) or not isinstance(points, (int, float)):
+        raise TypeError(f"points must be numeric, got {type(points).__name__}")
+    if math.isnan(points) or math.isinf(points):
+        raise ValueError("points cannot be NaN or infinite")
+
+    validate_numeric_range("prior", prior, 0.0, 1.0)
+    validate_numeric_range("odds_base", odds_base, 1e-6, 1000.0)
+
     if prior <= 0.0:
         return 0.0
     if prior >= 1.0:
         return 1.0
+
     prior_odds = prior / (1.0 - prior)
     lr = odds_base ** float(points)
     post_odds = prior_odds * lr
     post_prob = post_odds / (1.0 + post_odds)
-    return max(0.0, min(1.0, post_prob))
+    result = max(0.0, min(1.0, float(post_prob)))
+    return round(result, 6)

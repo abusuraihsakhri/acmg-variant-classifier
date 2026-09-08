@@ -1,0 +1,1 @@
+# Zero runtime dependencies (standard library only)

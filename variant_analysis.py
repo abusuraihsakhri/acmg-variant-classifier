@@ -62,6 +62,17 @@ class SpliceImpactPredictor:
     def predict(self, variant_id: str, position: int, ref_base: str,
                 alt_base: str, intron_exon: str = "intron",
                 splice_distance: int = 0) -> SplicePrediction:
+        if isinstance(position, bool) or not isinstance(position, int):
+            raise TypeError(f"position must be an integer, got {type(position).__name__}")
+        if isinstance(splice_distance, bool) or not isinstance(splice_distance, int):
+            raise TypeError(f"splice_distance must be an integer, got {type(splice_distance).__name__}")
+        if intron_exon not in ("intron", "exon"):
+            raise ValueError(f"intron_exon must be 'intron' or 'exon', got {intron_exon!r}")
+
+        variant_id = str(variant_id)
+        ref_base = str(ref_base).upper()
+        alt_base = str(alt_base).upper()
+
         is_canonical = abs(splice_distance) <= 3 if intron_exon == "intron" else False
         delta_score = 0.0
         predicted_effect = "No splice impact predicted"
@@ -203,7 +214,10 @@ class FunctionalDomainMapper:
     }
 
     def map_variant(self, gene: str, variant_id: str, position: int) -> List[FunctionalDomainHit]:
-        gene_upper = gene.upper()
+        if isinstance(position, bool) or not isinstance(position, int):
+            raise TypeError(f"position must be an integer, got {type(position).__name__}")
+        gene_upper = str(gene).upper()
+        variant_id = str(variant_id)
         domains = self.DOMAIN_DB.get(gene_upper, [])
         hot_spots = self.HOT_SPOT_POSITIONS.get(gene_upper, set())
 

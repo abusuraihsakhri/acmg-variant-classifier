@@ -21,10 +21,11 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install test dependencies
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pytest
+        pip install -r requirements-dev.txt
+        pip install -e .
 
     - name: Run Test Suite
       run: |
@@ -32,8 +33,12 @@ jobs:
 
     - name: Verify CLI Smoke Test
       run: |
+        python cli.py --help
         python cli.py --evidence PVS1 PS3 PM2 --json
         python cli.py --splice --pos 1 --ref G --alt A --json
         python cli.py --pgx --gene CYP2C19 --json
         python cli.py --domain --gene TP53 --pos 175 --json
         python cli.py -i sample_variants.csv --format json
+        python cli.py -i sample_variants.csv --format csv
+        acmg-classifier --evidence PVS1 PS3 PM2 --json
+        python -m acmg_classifier --help

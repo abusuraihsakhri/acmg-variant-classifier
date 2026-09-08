@@ -37,6 +37,13 @@ from acmg_classifier.report import (
     reports_to_json,
     report_to_text,
     reports_to_text,
+    reports_to_csv,
+)
+from acmg_classifier.security import (
+    safe_resolve_path,
+    sanitize_csv_cell,
+    validate_numeric_range,
+    WINDOWS_RESERVED_NAMES,
 )
 from variant_analysis import (
     SplicePrediction,
@@ -68,6 +75,11 @@ __all__ = [
     "reports_to_json",
     "report_to_text",
     "reports_to_text",
+    "reports_to_csv",
+    "safe_resolve_path",
+    "sanitize_csv_cell",
+    "validate_numeric_range",
+    "WINDOWS_RESERVED_NAMES",
     "SplicePrediction",
     "SpliceImpactPredictor",
     "PGxAnnotation",

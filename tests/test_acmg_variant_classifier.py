@@ -465,5 +465,192 @@ class TestInputValidationAndSecurity(unittest.TestCase):
             sys.stderr = old_stderr
 
 
+class TestDefensiveHardeningAndSecurity(unittest.TestCase):
+    """Rigorous tests for OWASP Top 10 hardening and defensive design patterns."""
+
+    def test_csv_formula_injection_sanitization(self):
+        from acmg_classifier.security import sanitize_csv_cell
+        self.assertEqual(sanitize_csv_cell("=1+1"), "'=1+1")
+        self.assertEqual(sanitize_csv_cell("+cmd|' /C calc'!A0"), "'+cmd|' /C calc'!A0")
+        self.assertEqual(sanitize_csv_cell("@SUM(A1:A10)"), "'@SUM(A1:A10)")
+        self.assertEqual(sanitize_csv_cell("\tDANGEROUS"), "'\tDANGEROUS")
+        self.assertEqual(sanitize_csv_cell("\rDANGEROUS"), "'\rDANGEROUS")
+        self.assertEqual(sanitize_csv_cell("-cmd|' /C calc'!A0"), "'-cmd|' /C calc'!A0")
+        # Legitimate numbers preserved
+        self.assertEqual(sanitize_csv_cell(-4.5), -4.5)
+        self.assertEqual(sanitize_csv_cell("-4.5"), "-4.5")
+        self.assertEqual(sanitize_csv_cell("-100"), "-100")
+        self.assertEqual(sanitize_csv_cell(42), 42)
+        self.assertEqual(sanitize_csv_cell("normal_text"), "normal_text")
+        self.assertEqual(sanitize_csv_cell(None), "")
+
+    def test_reports_to_csv_sanitizes_content(self):
+        from acmg_classifier.report import reports_to_csv
+        rep = classify_variant(["PVS1"], variant_id="=cmd|' /C calc'!A0")
+        csv_out = reports_to_csv([rep])
+        self.assertIn("'=cmd|' /C calc'!A0", csv_out)
+        self.assertNotIn("\n=cmd|", csv_out)
+
+    def test_path_traversal_windows_reserved(self):
+        from acmg_classifier.security import safe_resolve_path
+        for name in ["CON", "PRN", "AUX", "NUL", "COM1", "LPT1"]:
+            with self.assertRaises(ValueError):
+                safe_resolve_path(f"{name}.txt")
+            with self.assertRaises(ValueError):
+                safe_resolve_path(name)
+
+    def test_path_traversal_null_bytes(self):
+        from acmg_classifier.security import safe_resolve_path
+        with self.assertRaises(ValueError):
+            safe_resolve_path("test\0file.txt")
+
+    def test_path_traversal_base_dir_confinement(self):
+        from acmg_classifier.security import safe_resolve_path
+        with tempfile.TemporaryDirectory() as base_dir:
+            safe_inside = os.path.join(base_dir, "safe.txt")
+            resolved = safe_resolve_path(safe_inside, base_dir=base_dir)
+            self.assertEqual(resolved, Path(os.path.realpath(safe_inside)))
+
+            escaping_path = os.path.join(base_dir, "..", "escape.txt")
+            with self.assertRaises(PermissionError):
+                safe_resolve_path(escaping_path, base_dir=base_dir)
+
+    def test_numeric_validation_nan_inf_bool(self):
+        from acmg_classifier.security import validate_numeric_range
+        # Normal bounds succeed
+        validate_numeric_range("val", 0.5, 0.0, 1.0)
+
+        # Booleans rejected
+        with self.assertRaises(TypeError):
+            validate_numeric_range("val", True, 0.0, 1.0)
+        with self.assertRaises(TypeError):
+            validate_numeric_range("val", False, 0.0, 1.0)
+
+        # NaN rejected
+        with self.assertRaises(ValueError):
+            validate_numeric_range("val", float("nan"), 0.0, 1.0)
+
+        # Inf rejected
+        with self.assertRaises(ValueError):
+            validate_numeric_range("val", float("inf"), 0.0, 1.0)
+        with self.assertRaises(ValueError):
+            validate_numeric_range("val", float("-inf"), 0.0, 1.0)
+
+        # Out of bounds rejected
+        with self.assertRaises(ValueError):
+            validate_numeric_range("val", 1.5, 0.0, 1.0)
+        with self.assertRaises(ValueError):
+            validate_numeric_range("val", -0.1, 0.0, 1.0)
+
+    def test_posterior_probability_type_rejection(self):
+        # Booleans and NaNs must be rejected
+        with self.assertRaises(TypeError):
+            bayesian.posterior_probability(points=True, prior=0.1)
+        with self.assertRaises(TypeError):
+            bayesian.posterior_probability(points=5, prior=True)
+        with self.assertRaises(ValueError):
+            bayesian.posterior_probability(points=float("nan"), prior=0.1)
+        with self.assertRaises(ValueError):
+            bayesian.posterior_probability(points=5, prior=float("nan"))
+        with self.assertRaises(ValueError):
+            bayesian.posterior_probability(points=5, prior=1.5)
+
+    def test_frequency_check_type_rejection(self):
+        # Boolean population_af should not bypass into BA1
+        effective_codes, warnings, auto_added = frequency.check_frequency(
+            ["PP1"], population_af=True
+        )
+        self.assertNotIn("BA1", effective_codes)
+        self.assertTrue(any("must be numeric" in w for w in warnings))
+
+        # NaN population_af should not bypass
+        effective_codes, warnings, auto_added = frequency.check_frequency(
+            ["PP1"], population_af=float("nan")
+        )
+        self.assertNotIn("BA1", effective_codes)
+        self.assertTrue(any("outside the valid range" in w for w in warnings))
+
+    def test_splice_predictor_type_rejection(self):
+        predictor = SpliceImpactPredictor()
+        with self.assertRaises(TypeError):
+            predictor.predict("V1", position=True, ref_base="G", alt_base="A")
+        with self.assertRaises(TypeError):
+            predictor.predict("V1", position=1, ref_base="G", alt_base="A", splice_distance=True)
+        with self.assertRaises(ValueError):
+            predictor.predict("V1", position=1, ref_base="G", alt_base="A", intron_exon="invalid")
+
+    def test_domain_mapper_type_rejection(self):
+        mapper = FunctionalDomainMapper()
+        with self.assertRaises(TypeError):
+            mapper.map_variant("BRCA1", "V1", position=True)
+        with self.assertRaises(TypeError):
+            mapper.map_variant("BRCA1", "V1", position="first")
+
+    def test_resilient_batch_csv_processing(self):
+        csv_content = (
+            "variant_id,evidence,af\n"
+            "ROW1,PVS1,0.00001\n"
+            "ROW2,UNKNOWN_CODE_ABC,0.00001\n"
+            "ROW3,BA1,0.15\n"
+        )
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(csv_content)
+            temp_path = f.name
+
+        try:
+            out = io.StringIO()
+            old_stdout = sys.stdout
+            sys.stdout = out
+            try:
+                exit_code = cli.main(["-i", temp_path, "--format", "json"])
+                self.assertEqual(exit_code, 0)
+            finally:
+                sys.stdout = old_stdout
+
+            data = json.loads(out.getvalue())
+            self.assertEqual(len(data), 3)
+            self.assertEqual(data[0]["variant_id"], "ROW1")
+            self.assertEqual(data[0]["final_classification"], "Pathogenic")
+            # Second row had error, captured without crashing
+            self.assertEqual(data[1]["variant_id"], "ROW2")
+            self.assertEqual(data[1]["final_source"], "Batch Row Error")
+            self.assertTrue(any("UNKNOWN_CODE_ABC" in w for w in data[1]["warnings"]))
+            # Third row succeeded
+            self.assertEqual(data[2]["variant_id"], "ROW3")
+            self.assertEqual(data[2]["final_classification"], "Benign")
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+
+    def test_cli_json_error_output(self):
+        out = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            exit_code = cli.main(["--evidence", "UNKNOWN_XYZ", "--json"])
+            self.assertEqual(exit_code, 1)
+        finally:
+            sys.stdout = old_stdout
+
+        err_json = json.loads(out.getvalue())
+        self.assertIn("error", err_json)
+        self.assertIn("UNKNOWN_XYZ", err_json["error"])
+
+    def test_cli_csv_format_output(self):
+        out = io.StringIO()
+        old_stdout = sys.stdout
+        sys.stdout = out
+        try:
+            exit_code = cli.main(["--evidence", "PVS1", "PS3", "--format", "csv", "--variant-id", "VAR-CSV"])
+            self.assertEqual(exit_code, 0)
+        finally:
+            sys.stdout = old_stdout
+
+        content = out.getvalue()
+        self.assertIn("variant_id,final_classification", content)
+        self.assertIn("VAR-CSV,Pathogenic", content)
+
+
 if __name__ == "__main__":
     unittest.main()
+

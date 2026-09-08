@@ -20,6 +20,8 @@ from tests.test_acmg_variant_classifier import (
     TestAlleleFrequencyRules,
     TestSpliceAndPGxAndDomain,
     TestCLIAndBatch,
+    TestInputValidationAndSecurity,
+    TestDefensiveHardeningAndSecurity,
 )
 
 if __name__ == "__main__":

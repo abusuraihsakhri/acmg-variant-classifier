@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "acmg-variant-classifier"
+version = "1.0.0"
+description = "ACMG/AMP 2015 and ClinGen Bayesian variant interpretation, splice prediction, and pharmacogenomics annotation in Python with zero external runtime dependencies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Abusuraih Sakhri" }]
+keywords = [
+    "genetics",
+    "bioinformatics",
+    "acmg",
+    "variant-classification",
+    "clinical-genetics",
+    "genomics",
+    "cli",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Intended Audience :: Healthcare Industry",
+    "Intended Audience :: Science/Research",
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[project.scripts]
+acmg-classifier = "cli:main"
+acmg-classify = "cli:main"
+
+[tool.setuptools]
+packages = ["acmg_classifier"]
+py-modules = ["acmg_variant_classifier", "variant_analysis", "cli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

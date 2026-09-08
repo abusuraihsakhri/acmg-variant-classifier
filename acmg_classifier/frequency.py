@@ -9,6 +9,9 @@ asserted codes and the frequency data (e.g. PM2 claimed for a common
 variant) is reported as a warning.
 """
 
+import math
+from .security import validate_numeric_range
+
 DEFAULT_BA1_THRESHOLD = 0.05
 DEFAULT_PM2_THRESHOLD = 0.0001
 
@@ -27,6 +30,9 @@ def check_frequency(codes, population_af, ba1_threshold=DEFAULT_BA1_THRESHOLD,
     Returns:
         (effective_codes: set[str], warnings: list[str], auto_added: list[str])
     """
+    validate_numeric_range("ba1_threshold", ba1_threshold, 0.0, 1.0)
+    validate_numeric_range("pm2_threshold", pm2_threshold, 0.0, 1.0)
+
     manual_codes = set(codes)
     effective = set(codes)
     warnings = []
@@ -35,7 +41,13 @@ def check_frequency(codes, population_af, ba1_threshold=DEFAULT_BA1_THRESHOLD,
     if population_af is None:
         return effective, warnings, auto_added
 
-    if not 0.0 <= population_af <= 1.0:
+    if isinstance(population_af, bool) or not isinstance(population_af, (int, float)):
+        warnings.append(
+            f"Population allele frequency must be numeric, got {type(population_af).__name__}."
+        )
+        return effective, warnings, auto_added
+
+    if math.isnan(population_af) or math.isinf(population_af) or not (0.0 <= population_af <= 1.0):
         warnings.append(
             f"Population allele frequency {population_af!r} is outside the "
             f"valid range [0, 1]."
